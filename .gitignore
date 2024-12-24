@@ -1,2 +1,7 @@
 build
 .cache
+.vscode/
+examples/datasets
+python/dist
+python/glassppy.egg-info
+python/tmp
