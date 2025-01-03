@@ -2,6 +2,7 @@ build
 .cache
 .vscode/
 examples/datasets
+examples/demo.ipynb
 python/dist
 python/glassppy.egg-info
 python/tmp
