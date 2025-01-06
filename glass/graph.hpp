@@ -26,6 +26,10 @@ template <typename node_t> struct Graph {
 
   Graph(node_t *edges, int N, int K) : N(N), K(K), data(edges) {}
 
+  Graph(node_t *edges, int N, int K, int ep) : N(N), K(K), data(edges) {
+    this->eps.push_back(ep);
+  }
+
   Graph(int N, int K)
       : N(N), K(K), data((node_t *)alloc2M((size_t)N * K * sizeof(node_t))) {}
 
