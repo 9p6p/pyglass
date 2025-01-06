@@ -26,10 +26,6 @@ template <typename node_t> struct Graph {
 
   Graph(node_t *edges, int N, int K) : N(N), K(K), data(edges) {}
 
-  Graph(node_t *edges, int N, int K, int ep) : N(N), K(K), data(edges) {
-    this->eps.push_back(ep);
-  }
-
   Graph(int N, int K)
       : N(N), K(K), data((node_t *)alloc2M((size_t)N * K * sizeof(node_t))) {}
 
@@ -109,6 +105,15 @@ template <typename node_t> struct Graph {
       initializer->load(reader);
     }
     printf("Graph Loding done\n");
+  }
+
+  void load_from_edges(const int32_t *edges, int32_t N, int32_t K, int32_t ep) {
+    this->eps.push_back(ep);
+    for (int i = 0; i < N; ++i) {
+      for (int j = 0; j < K; ++j) {
+        at(i, j) = edges[i * K + j];
+      }
+    }
   }
 };
 

@@ -46,8 +46,9 @@ struct Graph {
 
   explicit Graph(const glass::Graph<int> &graph) : graph(graph) {}
   
-  explicit Graph(const glass::Graph<int> &graph) : graph(graph) {}
-
+  explicit Graph(const int *edges, int N, int K, int ep) {
+    graph.load_from_edges(edges, N, K, ep);
+  }
   void save(const std::string &filename) { graph.save(filename); }
 
   void load(const std::string &filename) { graph.load(filename); }
@@ -141,15 +142,15 @@ PYBIND11_PLUGIN(glassppy) {
       .def(py::init<const std::string &>(), py::arg("filename"))
       .def("save", &Graph::save, py::arg("filename"))
       .def("load", &Graph::load, py::arg("filename"))
-      .def(py::init([](py::array_t<int32_t> edges, int N, int K, int ep) {
-          auto buffer = edges.request();
-          if (buffer.ndim != 1 || buffer.size != N * K) {
-              throw py::value_error("edges must be a 1D numpy array of size N*K");
-          }
-          std::vector<int32_t> edges_vec(static_cast<int32_t*>(buffer.ptr), static_cast<int32_t*>(buffer.ptr) + N * K);
-          return new Graph<int32_t>(edges_vec.data(), N, K, ep);
-      });
-  
+      .def(py::init([](py::array_t<int> edges, int N, int K, int ep) {
+        auto buffer = edges.request();
+        if (buffer.ndim != 1 || buffer.size != N * K) {
+          throw py::value_error("edges must be a 1D numpy array of size N*K");
+        }
+        int *edges_ptr = static_cast<int *>(buffer.ptr);
+        return new Graph(edges_ptr, N, K, ep);
+      }), py::arg("edges"), py::arg("N"), py::arg("K"), py::arg("ep"));
+
   py::class_<Index>(m, "Index")
       .def(py::init<const std::string &, int, const std::string &, int, int>(),
            py::arg("index_type"), py::arg("dim"), py::arg("metric"),
