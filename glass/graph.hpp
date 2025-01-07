@@ -115,7 +115,9 @@ template <typename node_t> struct Graph {
     this->eps.push_back(ep);
     for (int i = 0; i < N; ++i) {
       for (int j = 0; j < K; ++j) {
-        at(i, j) = edges[i * K + j];
+        int val = edges[i * K + j];
+        if (val == -2) val = 0;
+        at(i, j) = val;
       }
     }
   }
