@@ -49,6 +49,7 @@ struct Graph {
   explicit Graph(const int *edges, int N, int K, int ep) {
     graph.load_from_edges(edges, N, K, ep);
   }
+  
   void save(const std::string &filename) { graph.save(filename); }
 
   void load(const std::string &filename) { graph.load(filename); }
