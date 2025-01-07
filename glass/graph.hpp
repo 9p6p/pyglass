@@ -107,7 +107,11 @@ template <typename node_t> struct Graph {
     printf("Graph Loding done\n");
   }
 
-  void load_from_edges(const int32_t *edges, int32_t N, int32_t K, int32_t ep) {
+  void load_from_edges(const node_t *edges, int N, int K, int ep) {
+    static_assert(std::is_same_v<node_t, int32_t>);
+    data = (node_t *)alloc2M((size_t)N * K * sizeof(node_t));
+    this->K = K;
+    this->N = N;
     this->eps.push_back(ep);
     for (int i = 0; i < N; ++i) {
       for (int j = 0; j < K; ++j) {
