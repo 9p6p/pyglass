@@ -40,7 +40,8 @@ template <Metric metric, int DIM = 0> struct FP32Quantizer {
 
   template <int DALIGN = do_align(DIM, kAlign)> struct Computer {
     using dist_type = float;
-    constexpr static auto dist_func = metric == Metric::L2 ? L2Sqr : IP;
+    // constexpr static auto dist_func = metric == Metric::L2 ? L2Sqr : IP;
+    constexpr static auto dist_func = metric == Metric::L2 ? L2Sqr : IPcompare;
     const FP32Quantizer &quant;
     float *q = nullptr;
     Computer(const FP32Quantizer &quant, const float *query)

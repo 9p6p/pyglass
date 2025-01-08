@@ -366,4 +366,51 @@ inline int32_t L2SqrSQ4(const uint8_t *x, const uint8_t *y, int d) {
 #endif
 }
 
+inline float IPcompare(const float* a, const float* b, int d){
+
+    __m512 msum0 = _mm512_setzero_ps();
+
+    while (d >= 16) {
+        __m512 mx = _mm512_loadu_ps(a);
+        __m512 my = _mm512_loadu_ps(b);
+        a += 16;
+        b += 16;
+        msum0 = _mm512_fmadd_ps(mx, my, msum0);  // fma: mx * my + msum0
+        d -= 16;
+    }
+
+    __m256 msum1 = _mm512_extractf32x8_ps(msum0, 1) + _mm512_extractf32x8_ps(msum0, 0);
+
+    if (d >= 8) {
+        __m256 mx = _mm256_loadu_ps(a);
+        __m256 my = _mm256_loadu_ps(b);
+        a += 8;
+        b += 8;
+        msum1 = _mm256_fmadd_ps(mx, my, msum1);
+        d -= 8;
+    }
+
+    __m128 msum2 = _mm256_extractf128_ps(msum1, 1) + _mm256_extractf128_ps(msum1, 0);
+
+    if (d >= 4) {
+        __m128 mx = _mm_loadu_ps(a);
+        __m128 my = _mm_loadu_ps(b);
+        a += 4;
+        b += 4;
+        msum2 = _mm_fmadd_ps(mx, my, msum2);
+        d -= 4;
+    }
+
+    if (d > 0) {
+        __m128i mask = _mm_set_epi32(d > 2 ? -1 : 0, d > 1 ? -1 : 0, d > 0 ? -1 : 0, 0);
+        __m128 mx = _mm_maskload_ps(a, mask);
+        __m128 my = _mm_maskload_ps(b, mask);
+        msum2 = _mm_fmadd_ps(mx, my, msum2);
+    }
+
+    msum2 = _mm_hadd_ps(msum2, msum2);
+    msum2 = _mm_hadd_ps(msum2, msum2);
+    return -1.0f * _mm_cvtss_f32(msum2);
+}
+
 } // namespace glass
