@@ -286,7 +286,7 @@ template <typename dist_t> struct DynamicDiffPool {
   void shrink() {
     if (!shrink_flag_) return;
     shrink_flag_ = false;
-    while (capacity_ > _init_size &&
+    while (capacity_ > init_size_ &&
            (capacity_ / 2 >= size_ || data_[capacity_ / 2].distance > threshold_)) {
       capacity_ /= 2;
     }
@@ -321,10 +321,10 @@ template <typename dist_t> struct DynamicDiffPool {
 
   int nb, size_ = 0, cur_ = 0, capacity_;
   std::vector<Neighbor<dist_t>, align_alloc<Neighbor<dist_t>>> data_;
-  Bitset<uint64_t> vis;
   float ipdiff_, init_max_, threshold_ = 0;
+  int init_size_;
+  Bitset<uint64_t> vis;
   bool shrink_flag_ = false;
-  size_t init_size_;
 };
 
 } // namespace searcher
