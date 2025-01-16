@@ -24,6 +24,7 @@ struct SearcherBase {
   virtual void Search(const float *q, int k, int *dst) const = 0;
   virtual void SetEf(int ef) = 0;
   virtual ~SearcherBase() = default;
+  virtual void SearchIpdiff(const float *q, std::vector<int>& dst, float ipdiff, float init_max) = 0; // new add
 };
 
 template <typename Quantizer> struct Searcher : public SearcherBase {
@@ -135,6 +136,17 @@ template <typename Quantizer> struct Searcher : public SearcherBase {
     quant.reorder(pool, q, dst, k);
   }
 
+  void SearchIpdiff(const float *q, std::vector<int>& dst, float ipdiff, float init_max){
+    auto computer = quant.get_computer(q);
+    searcher::DynamicDiffPool<typename Quantizer::template Computer<0>::dist_type>
+        pool(nb, ef, 5000, ipdiff, init_max);
+    graph.initialize_search(pool, computer);
+    SearchImplIpdiff(pool, computer);
+    int k = pool.pick_size();
+    dst.resize(k);
+    quant.reorder(pool, q, dst.data(), k);
+  }
+
   template <typename Pool, typename Computer>
   void SearchImpl(Pool &pool, const Computer &computer) const {
     while (pool.has_next()) {
@@ -160,6 +172,36 @@ template <typename Quantizer> struct Searcher : public SearcherBase {
         auto cur_dist = computer(v);
         pool.insert(v, cur_dist);
       }
+    }
+  }
+
+  template <typename Pool, typename Computer>
+  void SearchImplIpdiff(Pool &pool, const Computer &computer) const {
+    pool.prepare_search();
+    while (pool.has_next()) {
+      auto u = pool.pop();
+      graph.prefetch(u, graph_po);
+      for (int i = 0; i < po; ++i) {
+        int to = graph.at(u, i);
+        computer.prefetch(to, pl);
+      }
+      for (int i = 0; i < graph.K; ++i) {
+        int v = graph.at(u, i);
+        if (v == -1) {
+          break;
+        }
+        if (i + po < graph.K && graph.at(u, i + po) != -1) {
+          int to = graph.at(u, i + po);
+          computer.prefetch(to, pl);
+        }
+        if (pool.vis.get(v)) {
+          continue;
+        }
+        pool.vis.set(v);
+        auto cur_dist = computer(v);
+        pool.insert(v, cur_dist);
+      }
+      pool.shrink();
     }
   }
 };
