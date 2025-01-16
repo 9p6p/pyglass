@@ -128,6 +128,18 @@ struct Searcher {
     return py::array_t<int>({nq * k}, {sizeof(int)}, ids, free_when_done);
   }
 
+  py::object search_ipdiff(py::object query, float ipdiff, float init_max) {
+    py::array_t<float, py::array::c_style | py::array::forcecast> items(query);
+    std::vector<int> ids;
+    searcher->SearchIpdiff(items.data(0), ids, ipdiff, init_max);
+    return py::array_t<int>(
+        {static_cast<int>(ids.size())},
+        {sizeof(int)},
+        ids.data(),
+        py::capsule(ids.data(), [](void *f) {})
+    );
+  }
+
   void set_ef(int ef) { searcher->SetEf(ef); }
 
   void optimize(int num_threads = 0) { searcher->Optimize(num_threads); }
@@ -166,7 +178,7 @@ PYBIND11_PLUGIN(glassppy) {
       .def("search", &Searcher::search, py::arg("query"), py::arg("k"))
       .def("batch_search", &Searcher::batch_search, py::arg("query"),
            py::arg("k"), py::arg("num_threads") = 0)
-      .def("optimize", &Searcher::optimize, py::arg("num_threads") = 0);
-
+      .def("optimize", &Searcher::optimize, py::arg("num_threads") = 0)
+      .def("search_ipdiff", &Searcher::search_ipdiff, py::arg("query"), py::arg("ipdiff"), py::arg("init_max"));
   return m.ptr();
 }
