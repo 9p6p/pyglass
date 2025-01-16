@@ -132,17 +132,11 @@ struct Searcher {
     py::array_t<float, py::array::c_style | py::array::forcecast> items(query);
     std::vector<int> ids;
     searcher->SearchIpdiff(items.data(0), ids, ipdiff, init_max);
-    
-    int k = ids.size();
-    int *result_ids = new int[k];
-    std::copy(ids.begin(), ids.end(), result_ids);
-
-    py::capsule free_when_done(result_ids, [](void *f) { delete[] static_cast<int*>(f); });
     return py::array_t<int>(
-        {k},            
-        {sizeof(int)},  
-        result_ids,     
-        free_when_done  
+        {static_cast<int>(ids.size())},
+        {sizeof(int)},
+        ids.data(),
+        py::capsule(ids.data(), [](void *f) {})
     );
   }
 
