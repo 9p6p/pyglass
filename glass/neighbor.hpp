@@ -209,6 +209,124 @@ template <typename dist_t> struct HeapPool {
   Bitset<uint64_t> vis;
 };
 
+template <typename dist_t> struct DynamicDiffPool {
+  DynamicDiffPool(int n, int init_capacity, int reserved_capacity, float ipdiff, float init_max)
+      : nb(n), capacity_(init_capacity), data_(reserved_capacity), 
+      ipdiff_(ipdiff), init_max_(-init_max), init_size_(init_capacity), vis(n) {}
+
+  void prepare_search() {
+    threshold_ = std::min(init_max_, head_dist()) + ipdiff_;
+  }
+
+  int find_bsearch(dist_t dist) {
+    int lo = 0, hi = size_;
+    while (lo < hi) {
+      int mid = (lo + hi) >> 1;
+      if (data_[mid].distance > dist) {
+        hi = mid;
+      } else {
+        lo = mid + 1;
+      }
+    }
+    return lo;
+  }
+
+  int find_bsearch_dist(const dist_t dist, int hi) {
+    int lo = 0;
+    while (lo < hi) {
+      int mid = (lo + hi) >> 1;
+      if (dist < data_[mid].distance) {
+        hi = mid;
+      } else {
+        lo = mid + 1;
+      }
+    }
+    return lo;
+  }
+
+  bool insert(int u, dist_t dist) {
+    if (size_ == capacity_ && dist >= data_[size_ - 1].distance) {
+      return false;
+    }
+    int lo = find_bsearch(dist);
+    std::memmove(&data_[lo + 1], &data_[lo],
+                 (size_ - lo) * sizeof(Neighbor<dist_t>));
+    data_[lo] = {u, dist};
+    if (lo < cur_) {
+      cur_ = lo;
+    }
+
+    if (size_ >= capacity_) {
+      if (data_[static_cast<int>(capacity_ * 0.75)].distance <= threshold_) [[unlikely]] {  // first half all good
+        capacity_ *= 2;
+        if (data_.size() <= capacity_) [[unlikely]] {
+          data_.resize(capacity_ + 1);
+        }
+        size_++;
+      }
+    }
+    else {
+      size_++;
+    }
+
+    if (lo == 0) [[unlikely]] {
+      if (dist < init_max_) {
+        threshold_ = dist + ipdiff_;
+        shrink_flag_ = true;
+      }
+    }
+    return true;
+  }
+
+  void clear() {
+    size_ = 0;
+    cur_ = 0;
+  }
+
+  void shrink() {
+    if (!shrink_flag_) return;
+    shrink_flag_ = false;
+    while (capacity_ > _init_size &&
+           (capacity_ / 2 >= size_ || data_[capacity_ / 2].distance > threshold_)) {
+      capacity_ /= 2;
+    }
+    data_.resize(capacity_ + 1);
+    size_ = std::min(size_, capacity_);
+  }
+
+  int pop() {
+    set_checked(data_[cur_].id);
+    int pre = cur_;
+    while (cur_ < size_ && is_checked(data_[cur_].id)) {
+      cur_++;
+    }
+    return get_id(data_[pre].id);
+  }
+
+  float head_dist() { return data_[0].distance; }
+  float dist(size_t idx) { return data_[idx].distance; }
+  int pick_size() {
+    return find_bsearch_dist(threshold_, size_);
+  }
+
+  bool has_next() const { return cur_ < size_; }
+  int id(int i) const { return get_id(data_[i].id); }
+  int size() const { return size_; }
+  int capacity() const { return capacity_; }
+
+  constexpr static int kMask = 2147483647;
+  int get_id(int id) const { return id & kMask; }
+  void set_checked(int &id) { id |= 1 << 31; }
+  bool is_checked(int id) { return id >> 31 & 1; }
+
+  int nb, size_ = 0, cur_ = 0, capacity_;
+  std::vector<Neighbor<dist_t>, align_alloc<Neighbor<dist_t>>> data_;
+  Bitset<uint64_t> vis;
+  float ipdiff_, init_max_, threshold_ = 0;
+  bool shrink_flag_ = false;
+  size_t init_size_;
+};
+
 } // namespace searcher
 
 struct Neighbor {
